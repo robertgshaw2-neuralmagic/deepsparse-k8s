@@ -1,24 +1,35 @@
-Set the project id:
+## Start Cluster
+
+Create Cluster:
+
 ```bash
-export PROJECT_ID=$(gcloud config get-value project)
+minikube start
 ```
 
-### Put Image In Artifact Repo
+## Build Image
 
-Run the following to build the docker container:
+Point shell to minikube docker-daemon:
+
 ```bash
-simple % docker build -t us-central1-docker.pkg.dev/$PROJECT_ID/deepsparse-server/sentiment-analysis:0.1 .
+eval $(minikube -p minikube docker-env)
 ```
 
-Create Artifact Repo on GCP Console.
-
-Authenticate to Artifact Repo:
-
+Run the following to build the docker image:
 ```bash
-gcloud auth configure-docker us-central1-docker.pkg.dev
+docker build -t deepsparse/sentiment-analysis .
 ```
 
-Push Container to Artifact Repo:
+Create the deployment:
 ```bash
-docker push us-central1-docker.pkg.dev/$PROJECT_ID/deepsparse-server/sentiment-analysis:0.1
+kubectl apply -f deployment.yaml
+```
+
+
+https://kubernetes.io/blog/2018/07/24/feature-highlight-cpu-manager/
+
+- Enable CPU Manager with Static policy in the Kubelet
+- Configure pod to be in the Guaranteed QOS (whole numbers of CPU cores, request=limit)
+
+```bash
+minikube start --extra-config=kubelet.cpu-manager-policy="static" --extra-config=kubelet.kube-reserved="cpu=500m"   --extra-config=kubelet.feature-gates="CPUManager=true" --extra-config="kubelet.cpu-manager-policy-options=full-pcpus-only=true"
 ```

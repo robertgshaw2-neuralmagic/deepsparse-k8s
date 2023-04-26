@@ -6,4 +6,4 @@ RUN mv ./model/deployment ./deployment
 
 RUN rm -rf ./model
 
-ENTRYPOINT deepsparse.server --task sentiment-analysis --model_path ./deployment
+ENTRYPOINT deepsparse.server --task sentiment-analysis --model_path ./deployment --num-cores 4
