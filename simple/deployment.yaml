@@ -16,11 +16,15 @@ spec:
     spec:
       containers:
       - name: deepsparse
-        image: us-central1-docker.pkg.dev/$PROJECT_ID/deepsparse-server/sentiment-analysis:0.1
+        image: deepsparse/sentiment-analysis
+        imagePullPolicy: Never
         resources:
           requests:
             cpu: 4
-            memory: 8Gi
+            memory: "4Gi"
+          limits:
+            cpu: 4
+            memory: "4Gi"
         ports:
         - containerPort: 5543
 ---

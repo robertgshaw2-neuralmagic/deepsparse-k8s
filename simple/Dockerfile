@@ -6,4 +6,5 @@ RUN mv ./model/deployment ./deployment
 
 RUN rm -rf ./model
 
-ENTRYPOINT deepsparse.server --task sentiment-analysis --model_path ./deployment
+ENTRYPOINT ["tail", "-f", "/dev/null"]
+
