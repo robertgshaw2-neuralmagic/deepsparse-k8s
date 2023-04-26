@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deepsparse-deployment
+  labels:
+    app: deepsparse
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: deepsparse
+  template:
+    metadata:
+      labels:
+        app: deepsparse
+    spec:
+      containers:
+      - name: deepsparse
+        image: us-central1-docker.pkg.dev/$PROJECT_ID/deepsparse-server/sentiment-analysis:0.1
+        resources:
+          requests:
+            cpu: 4
+            memory: 8Gi
+        ports:
+        - containerPort: 5543
+---
