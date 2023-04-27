@@ -4,8 +4,8 @@ metadata:
   name: deepsparse-service
 spec:
   selector:
-    app: MyApp
+    app: deepsparse
   ports:
     - protocol: TCP
       port: 80
-      targetPort: 9376
+      targetPort: 5543

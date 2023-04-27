@@ -6,4 +6,4 @@ RUN mv ./model/deployment ./deployment
 
 RUN rm -rf ./model
 
-ENTRYPOINT deepsparse.server --task sentiment-analysis --model_path ./deployment --batch_size 64
+ENTRYPOINT deepsparse.server --task sentiment-analysis --model_path ./deployment --num_cores 16

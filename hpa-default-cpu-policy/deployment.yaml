@@ -16,15 +16,15 @@ spec:
     spec:
       containers:
       - name: deepsparse
-        image: deepsparse/sentiment-analysis
+        image: deepsparse
         imagePullPolicy: Never
         resources:
           requests:
             cpu: 2
-            memory: "8Gi"
+            memory: "4Gi"
           limits:
             cpu: 2
-            memory: "8Gi"
+            memory: "4Gi"
         ports:
         - containerPort: 5543
 ---
