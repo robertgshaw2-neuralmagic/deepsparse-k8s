@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deepsparse-deployment
+  labels:
+    app: deepsparse
+spec:
+  selector:
+    matchLabels:
+      app: deepsparse
+  template:
+    metadata:
+      labels:
+        app: deepsparse
+    spec:
+      nodeSelector:
+        cloud.google.com/machine-family: n2
+#        cloud.google.com/requested-min-cpu-platform: Intel_Ice_Lake
+      containers:
+      - name: deepsparse
+        image: us-central1-docker.pkg.dev/sandbox-377216/deepsparse-cluster-simple-repo/deepsparse:latest
+        resources:
+          requests:
+            cpu: 2
+            memory: "2Gi"
+          limits:
+            cpu: 2
+            memory: "2Gi"
+        ports:
+        - name: server-port 
+          containerPort: 5543
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: server-port
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: deepsparse-service
+spec:
+  selector:
+    app: deepsparse
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 5543
+  type: LoadBalancer
+---
