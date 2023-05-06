@@ -1,91 +1,82 @@
-## Setup Cluster with Metrics Server Running
-
-Create Cluster:
+https://kubernetes.io/blog/2018/07/24/feature-highlight-cpu-manager/
+- Enable CPU Manager with Static policy in the Kubelet
+- Configure pod to be in the Guaranteed QOS (whole numbers of CPU cores, request=limit)
 
 ```bash
-minikube start
+minikube start --extra-config=kubelet.cpu-manager-policy="static" --extra-config=kubelet.kube-reserved="cpu=500m"   --extra-config=kubelet.feature-gates="CPUManager=true" --extra-config="kubelet.cpu-manager-policy-options=full-pcpus-only=true"
 ```
 
-Point shell to minikube docker:
+```bash
+kubectl apply -f metrics-server.yaml
+```
+
 
 ```bash
 eval $(minikube docker-env)
+docker build -t deepsparse-nightly .
 ```
 
-Download Metrics Server Manifest and Edit To Disable Certificate Authority (note: this file is already included in the directory):
-```bash
-wget -o metrics-server.yaml https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
-```
-
-https://github.com/kubernetes-sigs/metrics-server
-
-Add `--kubelet-insecure-tls` to Metrics Server yaml
-
-## Launch DeepSparse with HPA
-
-Build the docker image:
-```bash
-docker build -t deepsparse .
-```
-
-Apply the manifest for the deployment / service:
 ```bash
 kubectl apply -f deepsparse.yaml
 ```
 
-Apply the mainfest for the hpa:
+```bash
+cd client
+```
+
+```bash
+docker build -t client .
+```
+
+```bash
+kubectl apply -f client-deployment.yaml
+```
+
+```bash
+kubectl get services
+NAME                 TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)   AGE
+deepsparse-service   ClusterIP   10.111.101.158   <none>        80/TCP    6m52s
+kubernetes           ClusterIP   10.96.0.1        <none>        443/TCP   28m
+```
+
+```bash
+kubectl exec --stdin --tty client-deployment-59f5c555d5-8htws -- /bin/bash
+```
+
+```bash
+python3 run.py --ip 10.111.101.158 --iters 10000 --num_streams 12
+```
+
 ```bash
 kubectl apply -f hpa.yaml
 ```
 
-Check to see the hpa is active:
-```bash
-kubectl get hpa deepsparse-deployment
-```
-
-## Put the System Under Load
-
-Build client docker image:
+We should see autoscaling
 
 ```bash
-cd client
-docker build -t .
-cd ..
+Every 0.1s: kubectl get hpa; kubectl top pods; kubectl get pods                                                                                                                                  ice-lake-16-cores-minikube: Sat May  6 13:17:26 2023
+
+NAME                    REFERENCE                          TARGETS   MINPODS   MAXPODS   REPLICAS   AGE
+deepsparse-deployment   Deployment/deepsparse-deployment   28%/30%   1         10        10         6m54s
+NAME                                     CPU(cores)   MEMORY(bytes)
+client-deployment-59f5c555d5-8htws       176m         14Mi
+deepsparse-deployment-794566bfb7-64whd   1120m        655Mi
+deepsparse-deployment-794566bfb7-cl4xq   1052m        662Mi
+deepsparse-deployment-794566bfb7-kf4nx   1204m        652Mi
+deepsparse-deployment-794566bfb7-nmd9v   1054m        660Mi
+deepsparse-deployment-794566bfb7-q54gj   1112m        650Mi
+deepsparse-deployment-794566bfb7-s4qdz   1150m        658Mi
+deepsparse-deployment-794566bfb7-xw2p7   1207m        654Mi
+NAME                                     READY   STATUS    RESTARTS   AGE
+client-deployment-59f5c555d5-8htws       1/1     Running   0          21m
+deepsparse-deployment-794566bfb7-64whd   1/1     Running   0          4m9s
+deepsparse-deployment-794566bfb7-9sm26   0/1     Pending   0          2m24s
+deepsparse-deployment-794566bfb7-cl4xq   1/1     Running   0          27m
+deepsparse-deployment-794566bfb7-cztqw   0/1     Pending   0          2m24s
+deepsparse-deployment-794566bfb7-gqlkc   0/1     Pending   0          2m24s
+deepsparse-deployment-794566bfb7-kf4nx   1/1     Running   0          3m24s
+deepsparse-deployment-794566bfb7-nmd9v   1/1     Running   0          4m54s
+deepsparse-deployment-794566bfb7-q54gj   1/1     Running   0          3m24s
+deepsparse-deployment-794566bfb7-s4qdz   1/1     Running   0          3m24s
+deepsparse-deployment-794566bfb7-xw2p7   1/1     Running   0          4m9s
 ```
-
-Add the client to the deploment:
-```bash
-kubectl apply -f client/deployment.yaml
-```
-
-Get client pod name:
-```bash
-kubectl get pods
-```
-
-Exec into the client:
-```bash
-kubectl exec --stdin --tty <client-pod-name> -- /bin/bash
-```
-
-Get the service Internal IP:
-```bash
-kubectl get services
-```
-
-Run the client load script:
-```bash
-python3 run.py --ip [service-ip] --num_streams 1 --iterations 1000
-```
-
-Watch the load + scaling:
-```bash
-watch -n0.1 "kubectl get hpa && kubectl top pod && kubectl get pods"
-```
-
-## Key Next Steps
-
-- expand to scale nodes up
-- expands to multi-region / multi-zone
-- add static cpu management policy (to isolate deepsparse) - right now performance will be horrible
-- check out what CPU utilization looks like under static policy (given we will maximum utilize 50% since we only use one hyperthread)
