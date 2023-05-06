@@ -14,14 +14,14 @@ class ExecutorThread(threading.Thread):
 
     def run(self):
         for _ in range(self.iters):
-            _ = requests.post(self.url, json=self.obj)
+	        r = requests.post(self.url, json=self.obj)
+	        r.close()
 
 def run(num_streams, ip, iters):
     url = f"http://{ip}:80/predict"
     obj = {"sequences": "Snorlax loves my Tesla!"}
     
     threads = [ExecutorThread(iters, url, obj) for _ in range(num_streams)] 
-
     for thread in threads:
         thread.start()
 

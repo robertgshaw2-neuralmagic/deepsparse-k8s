@@ -15,7 +15,6 @@ spec:
     spec:
       nodeSelector:
         cloud.google.com/machine-family: n2
-#        cloud.google.com/requested-min-cpu-platform: Intel_Ice_Lake
       containers:
       - name: deepsparse
         image: us-central1-docker.pkg.dev/sandbox-377216/deepsparse-cluster-simple-repo/deepsparse:latest
@@ -47,3 +46,15 @@ spec:
       targetPort: 5543
   type: LoadBalancer
 ---
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: deepsparse-deployment
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: deepsparse-deployment
+  minReplicas: 1
+  maxReplicas: 16
+  targetCPUUtilizationPercentage: 70

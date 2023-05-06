@@ -2,13 +2,13 @@
 
 ```bash
 gcloud container clusters create deepsparse-cluster-simple \
-    --min-cpu-platform="Intel Ice Lake" --machine-type=n2-highcpu-32 --threads-per-core=1 \
+    --min-cpu-platform="Intel Ice Lake" --machine-type=n2-highcpu-16 --threads-per-core=1 \
     --zone us-central1-a --node-locations us-central1-a \
-    --num-nodes=1 
+    --num-nodes=1 \
+    --enable-autoscaling --min-nodes=1 --max-nodes=4
 ```
 
 2. Build and Push Container to Aritfact Repo
-
 
 Create Artifact Repository called `deepsparse-cluster-simple-repo`
 
@@ -37,47 +37,48 @@ Push container:
 docker push us-central1-docker.pkg.dev/$PROJECT_ID/deepsparse-cluster-simple-repo/client
 ```
 
-3. Put System Under Load
+2. Launch Service
+
+```bash
+kubectl apply -f deepsparse.yaml
+```
 
 Get IP of the service:
 ```bash
-NAME                 TYPE           CLUSTER-IP    EXTERNAL-IP     PORT(S)        AGE
-deepsparse-service   LoadBalancer   10.24.3.229   34.27.180.142   80:30839/TCP   48m
-kubernetes           ClusterIP      10.24.0.1     <none>          443/TCP        86m
+kubectl get services
+
+NAME                 TYPE           CLUSTER-IP    EXTERNAL-IP    PORT(S)        AGE
+deepsparse-service   LoadBalancer   10.24.1.252   34.72.111.81   80:30408/TCP   2m56s
+kubernetes           ClusterIP      10.24.0.1     <none>         443/TCP        8m46s
 ```
+
+3. Scale Up 
 
 Put system under load:
 ```bash
-python3 client.py --num_streams 2 --ip 34.27.180.142 --iters 1000
+python3 client.py --num_streams 128 --ip 34.72.111.81 --iters 10000
 ```
 
-HTOP shows about 12-13% utilization on each of the 16 physical cores, which equals 2 CPUs ... so the resource limit is hit exactly (since vCPUs == physical CPUs, the autoscale metric now ties directly to physical core utilization)
+```bash
+kubectl top nodes
 
-Running the following shows the calculated metric is now at the resource limit / request:
+NAME                                                  CPU(cores)   CPU%   MEMORY(bytes)   MEMORY%   
+gke-deepsparse-cluster-s-default-pool-4f88feb5-fwbs   117m         1%     1421Mi          10%       
+gke-deepsparse-cluster-s-default-pool-4f88feb5-hr3w   6101m        77%    3249Mi          24%  
+```
 
 ```bash
 kubectl top pods
-
 NAME                                     CPU(cores)   MEMORY(bytes)   
-deepsparse-deployment-5884868d45-q7hl9   1939m        808Mi 
+deepsparse-deployment-5884868d45-2jb5b   2013m        766Mi           
+deepsparse-deployment-5884868d45-4bmcl   1990m        777Mi           
+deepsparse-deployment-5884868d45-8xwlr   73m          765Mi           
+deepsparse-deployment-5884868d45-vj6hx   1972m        780Mi  
 ```
-
-4. Add HPA
-
-```bash
-kubectl apply -f hpa.yaml
-```
-
-Add more load to the system:
-```bash
-python3 client.py --ip 34.27.180.142 --num_streams 32 --iters 10000
-```
-
-We should see it scale up to 7 pods (then run out of space trying to create an 8th pod).
 
 Take load off the system:
 ```bash
-python3 client.py --ip 34.27.180.142 --num_streams 2 --iters 10000
+python3 client.py --num_streams 2 --ip 34.72.111.81 --iters 1000
 ```
 
 We should see utilization drop quite a bit.
@@ -100,3 +101,5 @@ deepsparse-deployment-5884868d45-nczzc   742m         799Mi
 deepsparse-deployment-5884868d45-q7hl9   846m         808Mi
 deepsparse-deployment-5884868d45-t25fz   1186m        798Mi
 ```
+
+https://cloud.google.com/architecture/distributed-load-testing-using-gke
