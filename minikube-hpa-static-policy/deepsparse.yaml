@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deepsparse-deployment
+  labels:
+    app: deepsparse
+spec:
+  selector:
+    matchLabels:
+      app: deepsparse
+  template:
+    metadata:
+      labels:
+        app: deepsparse
+    spec:
+      containers:
+      - name: deepsparse
+        image: deepsparse-nightly
+        imagePullPolicy: Never
+        resources:
+          requests:
+            cpu: 4
+            memory: "2Gi"
+          limits:
+            cpu: 4
+            memory: "2Gi"
+        ports:
+        - name: server-port 
+          containerPort: 5543
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: server-port
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: deepsparse-service
+spec:
+  selector:
+    app: deepsparse
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 5543
+---
